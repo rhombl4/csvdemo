@@ -42,7 +42,7 @@ class ImportCSVFile
     end
     result = process_data(data, rows_count: headers.size)
 
-    import = Product.import result, validate: true, on_duplicate_key_update: {
+    import = Product.import result, batch_size: 1000, on_duplicate_key_update: {
       conflict_target: %i[sku], columns: %i[name photo_url barcode price producer]
     }
     errors.add 'Error during store to database' if import.blank?
@@ -115,6 +115,9 @@ class ImportCSVFile
       end
 
       arry << product_hash
+      # TODO: change the flow to saving by batches. this will reduce memory usage for large CSVs
+      # save_batch if arry.size > N
+      # clean_arry
     end
   end
 end
