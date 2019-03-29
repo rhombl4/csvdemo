@@ -36,43 +36,20 @@ class ImportCSVFile
     source.rewind
     data = CSV(source)
     headers = data.readline
-    column_count = headers.size
-    result = []
-    row_errors = []
-    # created_rows_count = 0
-    # updated_rows_count = 0
-    data.each.with_index do |source_row, i|
-      row = source_row.dup
-      if row.size != column_count
-        row_errors << { i: 'Bad row', data: source_row}
-        next
-      end
-
-      if row.any?(&:blank?)
-        row_errors << { i: 'Empty column', data: source_row}
-        next
-      end
-
-      sku = row[ROW_MAP.key(:sku)]
-      row[ROW_MAP.key(:sku)] = (sku.downcase rescue nil)
-
-      barcode = row[ROW_MAP.key(:barcode)]
-      row[ROW_MAP.key(:barcode)] = (Integer(barcode) rescue nil)
-
-      price = row[ROW_MAP.key(:price)]
-      row[ROW_MAP.key(:price)] = (Integer(price) rescue nil)
-
-      if faulty_column = row.find_index(&:blank?)
-        row_errors << { i: "Faulty value on #{ROW_MAP[faulty_column]}", data: source_row }
-        next
-      end
-
-      result << row.each_with_object({}).with_index do |(c, hsh), j|
-        hsh[ROW_MAP[j]] = c
-      end
+    if headers.blank?
+      errors.add 'No data'
+      return self
     end
-    
-    puts 'result and row_errors filled'
+    result = process_data(data, rows_count: headers.size)
+
+    import = Product.import result, validate: true, on_duplicate_key_update: {
+      conflict_target: %i[sku], columns: %i[name photo_url barcode price producer]
+    }
+    errors.add 'Error during store to database' if import.blank?
+
+    if row_errors.present?
+      row_errors.each { |e| Rails.logger.info "Failed entry: #{e.to_s}"}
+    end
 
     self
   end
@@ -84,6 +61,10 @@ class ImportCSVFile
 
   def success?
     errors.blank?
+  end
+
+  def row_errors
+    @row_errors ||= []
   end
 
   private
@@ -100,5 +81,40 @@ class ImportCSVFile
     @source = CSVSource.open @source_file
     errors.add('Source file not found') if @source.blank?
     @source
+  end
+
+  def process_data(data, rows_count:)
+    data.each_with_object([]).with_index do |(source_row, arry), i|
+      row = source_row.dup
+      if row.size != rows_count
+        row_errors << { row: i, error: 'Bad row', data: source_row}
+        next
+      end
+
+      if row.any?(&:blank?)
+        row_errors << { row: i, error: 'Empty column', data: source_row}
+        next
+      end
+
+      sku = row[ROW_MAP.key(:sku)]
+      row[ROW_MAP.key(:sku)] = (sku.downcase rescue nil)
+
+      barcode = row[ROW_MAP.key(:barcode)]
+      row[ROW_MAP.key(:barcode)] = (Integer(barcode) rescue nil)
+
+      price = row[ROW_MAP.key(:price)]
+      row[ROW_MAP.key(:price)] = (Integer(price) rescue nil)
+
+      if faulty_column = row.find_index(&:blank?)
+        row_errors << { row: i, error: "Faulty value at #{ROW_MAP[faulty_column]}", data: source_row }
+        next
+      end
+
+      product_hash = row.each_with_object({}).with_index do |(c, hsh), j|
+        hsh[ROW_MAP[j]] = c
+      end
+
+      arry << product_hash
+    end
   end
 end
