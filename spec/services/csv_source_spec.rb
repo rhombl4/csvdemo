@@ -13,7 +13,6 @@ RSpec.describe CSVSource do
       source = subject.class.call('spec/fixtures/files/sample.csv')
       expect(source).to be_instance_of(File)
       expect(source.path).to include('sample.csv')
-
     end
 
     it 'returns nil when wrong filename' do
