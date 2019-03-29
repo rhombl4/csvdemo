@@ -17,7 +17,10 @@ class ImportCSVFile
     import_service.import
     if import_service.success?
       Rails.logger.info 'Processed with success'
-      Rails.logger.info "Results"
+      if import_service.row_errors.present?
+        Rails.logger.info 'Entries with errors:'
+        import_service.row_errors.each { |e| Rails.logger.info "Failed entry: #{e.to_s}"}
+      end
       true
     else
       Rails.logger.warn 'Failed to import data:'
@@ -32,24 +35,25 @@ class ImportCSVFile
 
   def import
     return self if source.blank?
-    # raise 'Not implemented yet'
+
     source.rewind
     data = CSV(source)
+
     headers = data.readline
     if headers.blank?
       errors.add 'No data'
       return self
     end
+
     result = process_data(data, rows_count: headers.size)
+    # TODO: add counter for created/updated records
+
+    return self if result.empty?
 
     import = Product.import result, batch_size: 1000, on_duplicate_key_update: {
       conflict_target: %i[sku], columns: %i[name photo_url barcode price producer]
     }
     errors.add 'Error during store to database' if import.blank?
-
-    if row_errors.present?
-      row_errors.each { |e| Rails.logger.info "Failed entry: #{e.to_s}"}
-    end
 
     self
   end
@@ -84,6 +88,7 @@ class ImportCSVFile
   end
 
   def process_data(data, rows_count:)
+    # TODO: refactor this int oa separate service
     data.each_with_object([]).with_index do |(source_row, arry), i|
       row = source_row.dup
       if row.size != rows_count
