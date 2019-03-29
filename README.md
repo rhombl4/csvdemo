@@ -1,5 +1,12 @@
 # README
 
+INSTALLATION:
+- install ruby 2.5.1
+- bundle install
+- rake db:migrate
+- rails s
+
+
 Import:
   console run
     `rake to:stdout fetch_data:csv_file`
