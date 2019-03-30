@@ -13,4 +13,12 @@ module TestHelpers
   def product_to_row(product)
     ATTRIBUTES.map { |a| product.attributes[a.to_s] }
   end
+
+  def write_csv(file, data)
+    CSV.open(file, "w") do |csv|
+      data.each do |row|
+        csv << row
+      end
+    end
+  end
 end
