@@ -5,7 +5,7 @@ class CSVSource
   DEFAULT_FILENAME = Rails.root.join('public', 'sources', 'data.csv').freeze
 
   class << self
-    def open(source_file = nil)
+    def call(source_file = nil)
       File.open filename(source_file)
     rescue
       Rails.logger.error 'Unable to open such file...'
