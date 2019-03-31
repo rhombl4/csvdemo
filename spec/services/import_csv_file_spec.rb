@@ -42,8 +42,34 @@ RSpec.describe ImportCSVFile do
       expect(subject.call(wrong_filename)).to be false
     end
   end
-  # TODO: test instance methods
-  # context 'instance methods' do
-  #   it 'respond to import'
-  # end
+
+  context 'instance methods' do
+    describe 'respond to public methods' do
+      it { is_expected.to respond_to(:import).with(0).arguments }
+      it { is_expected.to respond_to(:success?).with(0).arguments }
+      it { is_expected.to respond_to(:error).with(0).arguments }
+      it { is_expected.to respond_to(:row_errors).with(0).arguments }
+    end
+
+    context 'call result' do
+      it('import is self') { expect(subject.import).to be_an_instance_of subject.class }
+      it('success? is boolean') { expect(subject.success?).to be_in [true, false] }
+      it('row_errors is array') { expect(subject.row_errors).to be_an_instance_of Array }
+      it('error is a nil when no errors') { expect(subject.error).to be_nil }
+      it 'error is a string on errors' do
+        allow(subject).to receive(:errors).and_return(['error'])
+        expect(subject.error).to be_an_instance_of String
+      end
+    end
+  end
+
+  context 'processing' do
+    subject { ImportCSVFile.new TEMPFILE2 }
+    it 'processes the file with invalid records' do
+      expect{subject.import}.to change{Product.count}.by(2)
+      expect(subject.success?).to be_truthy
+      expect(subject.error).to be_nil
+      expect(subject.row_errors.size).to eq(4)
+    end
+  end
 end
