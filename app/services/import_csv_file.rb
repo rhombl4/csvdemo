@@ -122,7 +122,7 @@ class ImportCSVFile
 
   def positive_integer(val)
     integer = Integer(val)
-    integer.negative? ? nil : integer
+    integer.positive? ? integer : nil
   rescue StandardError
     nil
   end
