@@ -98,12 +98,12 @@ RSpec.describe Api::V1::ProductsController, type: :controller do
   end
 
   describe 'search' do
-    context 'by company' do
+    context 'by producer' do
       let!(:producer) { 'abc123' }
       let!(:products) { create_list :product, 5 }
       let!(:producers_products) { create_list :product, 3, producer: producer }
 
-      it 'filters result to specified company' do
+      it 'filters result to specified producer' do
         get :index, format: :json, params: { q: { producer_eq: producer } }
         expect(body['total']).to eq producers_products.count
       end

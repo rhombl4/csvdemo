@@ -17,3 +17,6 @@ Clean DB:
 
 Search for data with ransack filters:
   `curl -X GET http://localhost:3000/api/v1/products -d 'q[producer_cont]=Waters'`
+
+Run tests:
+  `rspec`
